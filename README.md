@@ -28,8 +28,8 @@ http://2130706433/                # Decimal IP for 127.0.0.1
 http://0x7f000001/                # Hex
 http://[::ffff:127.0.0.1]/        # IPv4-mapped IPv6
 http://google.com@127.0.0.1/      # Hostname is actually 127.0.0.1
-http://127.0.0.1/                 # Leading space (space before http)
-http://127.0.0.1/                 # Leading tab (tab before http)
+" http://127.0.0.1/"              # Leading space
+"\thttp://127.0.0.1/"             # Leading tab
 ```
 
 ## What's at stake?
