@@ -28,8 +28,8 @@ http://2130706433/                # Decimal IP for 127.0.0.1
 http://0x7f000001/                # Hex
 http://[::ffff:127.0.0.1]/        # IPv4-mapped IPv6
 http://google.com@127.0.0.1/      # Hostname is actually 127.0.0.1
-" http://127.0.0.1/"              # Leading space
-"\thttp://127.0.0.1/"             # Leading tab
+[space]http://127.0.0.1/          # Leading space
+[tab]http://127.0.0.1/            # Leading tab
 ```
 
 ## What's at stake?
@@ -56,7 +56,7 @@ No. SAST tools detect the *absence* of validation, not *inadequate* validation. 
 
 SAST doesn't understand bypass semantics. It doesn't know that `http://2130706433/` resolves to localhost, or that `requests.get()` strips leading whitespace. It pattern-matches code, not attacker behavior.
 
-## The fix: parse first, validate the actual URL
+## Fixing input validation: parse first, validate the actual URL
 
 Instead of pattern-matching strings, extract the hostname and validate its properties:
 ```python
@@ -87,9 +87,24 @@ This is still a denylist - but a far more robust one. By parsing the URL first a
 
 For maximum security, consider an allowlist approach if your use case permits - only allow URLs to specific, known-good destinations rather than trying to block all bad ones.
 
-## But fixing this one function isn't enough.
+## This isn't the complete fix
 
-This isn't about blaming the AI - it generated a pattern it's seen thousands of times. A human would easily have made the exact same mistake.
+Validating the URL string - even with proper parsing - only protects you at the input layer. You also need protection at the network layer.
+
+Why? Because:
+
+- **DNS rebinding** - a public domain can resolve to `127.0.0.1`. The hostname `attacker.com` passes your URL validation, but when `requests.get()` resolves it, the DNS points to localhost.
+- **Redirects** - a legitimate-looking URL can return a 302 redirect to `http://169.254.169.254/`. Your validation checked the original URL, not the redirect target.
+
+To fully mitigate SSRF, you need to validate at request time - after DNS resolution and before the connection is made. This typically means:
+
+- Resolving the hostname yourself and validating the IP before passing it to your HTTP client
+- Disabling redirects or validating each redirect target
+- Using network-level controls (egress filtering, firewall rules) as a backstop
+
+Input validation catches the obvious cases. Network-layer validation catches the clever ones.
+
+And this isn't about blaming the AI - it generated a pattern it's seen thousands of times. A human would easily have made the exact same mistake.
 
 The real question is: how do we systematically improve and drive scalable, robust security practices across an entire codebase?
 
